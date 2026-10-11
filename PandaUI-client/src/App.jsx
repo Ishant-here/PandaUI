@@ -11,7 +11,7 @@ import MyComponents from "./Pages/MyComponents";
 import AllComponents from "./Pages/AllComponents";
 import { setUserData, setAllUser, setAllComponents } from "./Redux/userSlice";
 
-export const serverUrl = "http://localhost:8000";
+export const serverUrl = "https://pandaui.onrender.com";
 
 const App = () => {
   const dispatch = useDispatch();
