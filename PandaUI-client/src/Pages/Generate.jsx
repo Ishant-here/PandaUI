@@ -11,7 +11,6 @@ import axios from 'axios';
 import { setUserData } from '../Redux/userSlice';
 import { LiveComponentPreview } from '../Components/LiveComponentPreview';
 
-
 // --- Toast Component ---
 const Toast = ({ message, type, onClose }) => {
   return (
@@ -58,6 +57,7 @@ function Generate() {
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
+  // ✅ Single, module-level ServerUrl
   const ServerUrl = "https://pandaui.onrender.com";
 
   const showToast = (message, type = "info") => {
@@ -76,62 +76,61 @@ function Generate() {
 
   // --- Generate API Handler ---
   const handleGenerate = async () => {
-  if (!prompt.trim() || lowCredits) return;
+    if (!prompt.trim() || lowCredits) return;
 
-  setGenerated(null);
-  setGenerating(true);
-  setActiveTab("preview");
-  setSavedComponentId(null);
-  setPublished(false);
+    setGenerated(null);
+    setGenerating(true);
+    setActiveTab("preview");
+    setSavedComponentId(null);
+    setPublished(false);
 
-  try {
-    const ServerUrl = "https://pandaui.onrender.com";
+    try {
+      // ✅ No local ServerUrl here — uses the module-level one
+      const { data } = await axios.post(
+        `${ServerUrl}/api/component/generate`,
+        { prompt },
+        {
+          withCredentials: true,
+          timeout: 90000,
+        }
+      );
 
-    const { data } = await axios.post(
-      `${ServerUrl}/api/component/generate`,
-      { prompt },
-      {
-        withCredentials: true,
-        timeout: 90000,   // ✅ 90-second timeout
+      console.log("✅ Backend response:", data);
+
+      if (!data?.component) {
+        throw new Error("Backend returned no component");
       }
-    );
 
-    console.log("✅ Backend response:", data);
+      setGenerated(data.component);
 
-    if (!data?.component) {
-      throw new Error("Backend returned no component");
+      dispatch(setUserData({
+        ...userData,
+        aiCredits: data.remainingCredits,
+      }));
+
+      setGenerating(false);
+      showToast("AI Component Generated", "success");
+
+    } catch (error) {
+      console.error("❌ Generation Error:", error);
+      console.error("❌ Error details:", error.response?.data);
+
+      let errorMsg = "Generate Error";
+
+      if (error.code === "ECONNABORTED") {
+        errorMsg = "Request timed out. The AI is taking too long — try a simpler prompt.";
+      } else if (error.response?.status === 500) {
+        errorMsg = error.response?.data?.message || "Server error. Check backend logs.";
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      showToast(errorMsg, "error");
+      setGenerating(false);
     }
-
-    setGenerated(data.component);
-
-    dispatch(setUserData({
-      ...userData,
-      aiCredits: data.remainingCredits,
-    }));
-
-    setGenerating(false);
-    showToast("AI Component Generated", "success");
-
-  } catch (error) {
-    console.error("❌ Generation Error:", error);
-    console.error("❌ Error details:", error.response?.data);
-
-    let errorMsg = "Generate Error";
-
-    if (error.code === "ECONNABORTED") {
-      errorMsg = "Request timed out. The AI is taking too long — try a simpler prompt.";
-    } else if (error.response?.status === 500) {
-      errorMsg = error.response?.data?.message || "Server error. Check backend logs.";
-    } else if (error.response?.data?.message) {
-      errorMsg = error.response.data.message;
-    } else if (error.message) {
-      errorMsg = error.message;
-    }
-
-    showToast(errorMsg, "error");
-    setGenerating(false);
-  }
-};
+  };
 
   // --- Save Component Handler ---
   const handleSave = async () => {
@@ -477,13 +476,12 @@ function Generate() {
                 </AnimatePresence>
               </div>
 
-              {/* ✅ Action Bar: Save / Publish / Back / Generate New */}
+              {/* Action Bar: Save / Publish / Back / Generate New */}
               <div className='flex items-center gap-3 px-5 pb-5 pt-1 flex-wrap'>
 
                 {/* Admin Actions */}
                 {userRole === "admin" && (
                   <>
-                    {/* Save Component */}
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       onClick={handleSave}
@@ -507,7 +505,6 @@ function Generate() {
                       {saving ? "Saving..." : savedComponentId ? "Saved" : "Save Component"}
                     </motion.button>
 
-                    {/* Publish to npm */}
                     {savedComponentId && !published && (
                       <motion.button
                         whileTap={{ scale: 0.97 }}
@@ -531,7 +528,6 @@ function Generate() {
                       </motion.button>
                     )}
 
-                    {/* Published Success Badge */}
                     {published && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -547,34 +543,31 @@ function Generate() {
 
                 {/* User Actions */}
                 {userRole === "user" && (
-                  <>
-                    {/* Save Component for users */}
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={handleSave}
-                      disabled={saving || savedComponentId}
-                      className='flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed'
-                      style={{
-                        background: savedComponentId ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.06)",
-                        border: savedComponentId ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.1)",
-                        color: savedComponentId ? "#34d399" : "#fff",
-                      }}
-                    >
-                      {saving ? (
-                        <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                          <FiLoader size={14} />
-                        </motion.span>
-                      ) : savedComponentId ? (
-                        <FiCheckCircle size={14} />
-                      ) : (
-                        <FiSave size={14} />
-                      )}
-                      {saving ? "Saving..." : savedComponentId ? "Saved" : "Save Component"}
-                    </motion.button>
-                  </>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleSave}
+                    disabled={saving || savedComponentId}
+                    className='flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed'
+                    style={{
+                      background: savedComponentId ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.06)",
+                      border: savedComponentId ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                      color: savedComponentId ? "#34d399" : "#fff",
+                    }}
+                  >
+                    {saving ? (
+                      <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+                        <FiLoader size={14} />
+                      </motion.span>
+                    ) : savedComponentId ? (
+                      <FiCheckCircle size={14} />
+                    ) : (
+                      <FiSave size={14} />
+                    )}
+                    {saving ? "Saving..." : savedComponentId ? "Saved" : "Save Component"}
+                  </motion.button>
                 )}
 
-                {/* Right-side actions: Back / Generate New / My Components */}
+                {/* Right-side actions */}
                 {savedComponentId && (
                   <motion.div
                     initial={{ opacity: 0, x: -8 }}
@@ -597,7 +590,8 @@ function Generate() {
                     >
                       <FiRefreshCw size={14} /> Generate New
                     </motion.button>
-                    <motion.button onClick={()=>navigate("/my-components")}
+                    <motion.button
+                      onClick={() => navigate("/my-components")}
                       whileTap={{ scale: 0.97 }}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
                       style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", color: "#818cf8" }}
@@ -655,4 +649,4 @@ function Generate() {
   );
 }
 
-export default Generate; 
+export default Generate;
