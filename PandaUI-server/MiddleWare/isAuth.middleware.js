@@ -1,30 +1,26 @@
 const jwt = require("jsonwebtoken");
 
+// ✅ Must be the EXACT SAME string as Config/token.js
+const JWT_SECRET = "nefjnaf8u3983u94ndjfd";
+
 const isAuth = async (req, res, next) => {
   const token = req.cookies.token;
 
+  console.log("🍪 isAuth: cookies received =", req.cookies);
+
   if (!token) {
-    return res.status(401).json({
-      message: "Unauthorized",
-    });
+    console.log("❌ isAuth: no token found");
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log("✅ isAuth: token verified for user", decoded.userId);
     req.userId = decoded.userId;
-
     next();
-
   } catch (error) {
-    console.error("Error in isAuth middleware:", error);
-
-    return res.status(401).json({
-      message: "Unauthorized",
-    });
+    console.error("❌ isAuth: verification failed:", error.message);
+    return res.status(401).json({ message: "Unauthorized" });
   }
 };
 
