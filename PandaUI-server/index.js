@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 8000;
 // CORS
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://pandaui-main.onrender.com",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
