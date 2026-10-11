@@ -58,7 +58,7 @@ function Generate() {
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
-  const ServerUrl = "http://localhost:8000";
+  const ServerUrl = "https://pandaui.onrender.com";
 
   const showToast = (message, type = "info") => {
     setToast({ message, type });
