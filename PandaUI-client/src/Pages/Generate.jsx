@@ -85,7 +85,7 @@ function Generate() {
   setPublished(false);
 
   try {
-    const ServerUrl = "https://pandaui-main.onrender.com";
+    const ServerUrl = "https://pandaui.onrender.com";
 
     const { data } = await axios.post(
       `${ServerUrl}/api/component/generate`,
